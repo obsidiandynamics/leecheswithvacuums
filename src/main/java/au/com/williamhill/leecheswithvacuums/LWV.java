@@ -22,6 +22,7 @@ public final class LWV extends Thread {
   private final long startTime = System.currentTimeMillis();
   private long lastReportTime = startTime;
   
+  private final AtomicInteger liveConnections = new AtomicInteger();
   private final AtomicLong received = new AtomicLong();
   private long lastReceived;
   
@@ -57,6 +58,7 @@ public final class LWV extends Thread {
                    new XEndpointListener<UndertowEndpoint>() {
       @Override
       public void onConnect(UndertowEndpoint endpoint) {
+        liveConnections.incrementAndGet();
         System.out.println("Connected to " + endpoint);
       }
 
@@ -83,7 +85,12 @@ public final class LWV extends Thread {
 
       @Override
       public void onClose(UndertowEndpoint endpoint) {
+        final int remainingConnections = liveConnections.decrementAndGet();
         System.out.println("Closed " + endpoint);
+        if (remainingConnections == 0) {
+          System.out.println("No more connections remaining; exiting");
+          System.exit(0);
+        }
       }
 
       @Override
@@ -127,8 +134,8 @@ public final class LWV extends Thread {
       final double averageRate = 1000d * totalReceived / totalElapsed;
       final double currentRate = 1000d * reportReceived / reportElapsed;
       
-      System.out.format("%,d messages; average rate: %,.0f msg/s, current rate: %,.0f msg/s\n",
-                        totalReceived, averageRate, currentRate);
+      System.out.format("[%s] %,d messages; rate: %,.0f msg/s average, %,.0f msg/s current; %,d live connection(s)\n",
+                        new Date(), totalReceived, averageRate, currentRate, liveConnections.get());
       
       lastReportTime = now;
       lastReceived = totalReceived;
