@@ -9,8 +9,9 @@ import java.util.concurrent.atomic.*;
 
 import au.com.williamhill.flywheel.socketx.*;
 import au.com.williamhill.flywheel.socketx.undertow.*;
+import io.undertow.websockets.core.*;
 
-public final class LWV extends Thread {
+public final class Leeches extends Thread {
   private static final Properties props = new Properties(System.getProperties());
   private final String url = getOrSet(props, "lwv.url", String::valueOf, "ws://localhost:8080");
   private final int connections = getOrSet(props, "lwv.connections", Integer::parseInt, 1);
@@ -26,12 +27,12 @@ public final class LWV extends Thread {
   private final AtomicLong received = new AtomicLong();
   private long lastReceived;
   
-  private LWV() throws Exception {
-    System.out.println("Leeches with Vacuums: starting...");
+  private Leeches() throws Exception {
+    log("Leeches with Vacuums: starting...");
     printProps();
     
     final XClient<UndertowEndpoint> client = UndertowClient.factory().create(new XClientConfig() {{
-      idleTimeoutMillis = LWV.this.idleTimeoutMillis;
+      idleTimeoutMillis = Leeches.this.idleTimeoutMillis;
     }});
     
     for (int i = 0; i < connections; i++) {
@@ -45,7 +46,7 @@ public final class LWV extends Thread {
     final Map<Object, Object> sortedProps = new TreeMap<>();
     filter("lwv.", props).entrySet().stream().forEach(e -> sortedProps.put(e.getKey(), e.getValue()));
     sortedProps.entrySet().stream()
-    .map(e -> String.format("%-20s: %s", e.getKey(), e.getValue())).forEach(System.out::println);
+    .map(e -> String.format("%-20s: %s", e.getKey(), e.getValue())).forEach(Leeches::log);
   }
   
   private int randomDelay() {
@@ -59,7 +60,7 @@ public final class LWV extends Thread {
       @Override
       public void onConnect(UndertowEndpoint endpoint) {
         liveConnections.incrementAndGet();
-        System.out.println("Connected to " + endpoint);
+        log("Connected to " + endpoint);
       }
 
       @Override
@@ -80,22 +81,22 @@ public final class LWV extends Thread {
 
       @Override
       public void onDisconnect(UndertowEndpoint endpoint, int statusCode, String reason) {
-        System.out.println("Disconnected from " + endpoint + " statusCode=" + statusCode + " reason=" + reason);
+        log("Disconnected from " + endpoint + " statusCode=" + statusCode + " reason=" + reason);
       }
 
       @Override
       public void onClose(UndertowEndpoint endpoint) {
         final int remainingConnections = liveConnections.decrementAndGet();
-        System.out.println("Closed " + endpoint);
+        log("Closed " + endpoint);
         if (remainingConnections == 0) {
-          System.out.println("No more connections remaining; exiting");
+          log("No more connections remaining; exiting");
           System.exit(0);
         }
       }
 
       @Override
       public void onError(UndertowEndpoint endpoint, Throwable cause) {
-        System.out.println("Error on endpoint " + endpoint + ": " + cause);
+        log("Error on endpoint " + endpoint + ": " + cause);
       }
     });
   }
@@ -103,14 +104,15 @@ public final class LWV extends Thread {
   private void handleMessage(UndertowEndpoint endpoint) {
     final int delayMillis = randomDelay();
     if (delayMillis != 0) {
-      endpoint.getChannel().suspendReceives();
+      final WebSocketChannel channel = endpoint.getChannel();
+      channel.suspendReceives();
       new Thread(() -> {
         try {
           Thread.sleep(delayMillis);
         } catch (InterruptedException e) {
           return;
         } finally {
-          endpoint.getChannel().resumeReceives();
+          channel.getIoThread().execute(channel::resumeReceives);
         }
       }, "ReceiveResumer").start();
     }
@@ -134,15 +136,19 @@ public final class LWV extends Thread {
       final double averageRate = 1000d * totalReceived / totalElapsed;
       final double currentRate = 1000d * reportReceived / reportElapsed;
       
-      System.out.format("[%s] %,d messages; rate: %,.0f msg/s average, %,.0f msg/s current; %,d live connection(s)\n",
-                        new Date(), totalReceived, averageRate, currentRate, liveConnections.get());
+      log("%,d messages; rate: %,.0f msg/s average, %,.0f msg/s current; %,d live connection(s); %,d active threads",
+          totalReceived, averageRate, currentRate, liveConnections.get(), Thread.activeCount());
       
       lastReportTime = now;
       lastReceived = totalReceived;
     }
   }
   
+  private static void log(String format, Object ... args) {
+    System.out.format("[" + new Date() + "] " + format + "\n", args);
+  }
+  
   public static void main(String[] args) throws Exception {
-    new LWV();
+    new Leeches();
   }
 }

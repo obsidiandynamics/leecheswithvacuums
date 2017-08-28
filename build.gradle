@@ -69,7 +69,7 @@ task fullJar(type: Jar) {
   dependsOn configurations.compile
   dependsOn configurations.runtime
   manifest {
-    attributes 'Main-Class': 'au.com.williamhill.leecheswithvacuums.LWV'
+    attributes 'Main-Class': 'au.com.williamhill.leecheswithvacuums.Leeches'
   }
   from sourceSets.main.output
   from { // bundle all dependencies
@@ -91,10 +91,10 @@ task sourcesJar(type: Jar) {
   classifier = 'sources'
 }
 
-task runLWV(type: JavaExec) {
+task leeches(type: JavaExec) {
   systemProperties = System.properties
   classpath = sourceSets.main.runtimeClasspath
-  main = 'au.com.williamhill.leecheswithvacuums.LWV'
+  main = 'au.com.williamhill.leecheswithvacuums.Leeches'
 }
 
 build {
