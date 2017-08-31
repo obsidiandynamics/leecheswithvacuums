@@ -19,6 +19,7 @@ public final class Leeches extends Thread {
   private final int maxDelayMillis = getOrSet(props, "lwv.delay.max", Integer::parseInt, 0);
   private final int reportIntervalMillis = getOrSet(props, "lwv.reportInterval", Integer::parseInt, 5_000);
   private final int idleTimeoutMillis = getOrSet(props, "lwv.idleTimeout", Integer::parseInt, 600_000);
+  private final boolean useThreadSleep = getOrSet(props, "lwv.useThreadSleep", Boolean::parseBoolean, false);
   
   private final long startTime = System.currentTimeMillis();
   private long lastReportTime = startTime;
@@ -30,6 +31,10 @@ public final class Leeches extends Thread {
   private Leeches() throws Exception {
     log("Leeches with Vacuums: starting...");
     printProps();
+    
+    if (useThreadSleep) {
+      System.setProperty("socketx.undertow.ioThreads", String.valueOf(Math.max(2, connections)));
+    }
     
     final XClient<UndertowEndpoint> client = UndertowClient.factory().create(new XClientConfig() {{
       idleTimeoutMillis = Leeches.this.idleTimeoutMillis;
@@ -104,17 +109,25 @@ public final class Leeches extends Thread {
   private void handleMessage(UndertowEndpoint endpoint) {
     final int delayMillis = randomDelay();
     if (delayMillis != 0) {
-      final WebSocketChannel channel = endpoint.getChannel();
-      channel.suspendReceives();
-      new Thread(() -> {
+      if (useThreadSleep) {
         try {
           Thread.sleep(delayMillis);
         } catch (InterruptedException e) {
           return;
-        } finally {
-          channel.getIoThread().execute(channel::resumeReceives);
         }
-      }, "ReceiveResumer").start();
+      } else {
+        final WebSocketChannel channel = endpoint.getChannel();
+        channel.suspendReceives();
+        new Thread(() -> {
+          try {
+            Thread.sleep(delayMillis);
+          } catch (InterruptedException e) {
+            return;
+          } finally {
+            channel.getIoThread().execute(channel::resumeReceives);
+          }
+        }, "ReceiveResumer").start();
+      }
     }
     received.incrementAndGet();
   }
