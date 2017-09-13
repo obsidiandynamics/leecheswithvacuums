@@ -1,5 +1,6 @@
 package au.com.williamhill.leecheswithvacuums;
 
+import static au.com.williamhill.leecheswithvacuums.LeechesCommon.*;
 import static com.obsidiandynamics.indigo.util.PropertyUtils.*;
 
 import java.net.*;
@@ -30,7 +31,7 @@ public final class Leeches extends Thread {
   
   private Leeches() throws Exception {
     log("Leeches with Vacuums: starting...");
-    printProps();
+    printProps(props);
     
     if (useThreadSleep) {
       System.setProperty("socketx.undertow.ioThreads", String.valueOf(Math.max(2, connections)));
@@ -45,18 +46,6 @@ public final class Leeches extends Thread {
     }
     
     new Thread(this::reportLogger, "ReportLogger").start();
-  }
-  
-  private void printProps() {
-    final Map<Object, Object> sortedProps = new TreeMap<>();
-    filter("lwv.", props).entrySet().stream().forEach(e -> sortedProps.put(e.getKey(), e.getValue()));
-    sortedProps.entrySet().stream()
-    .map(e -> String.format("%-20s: %s", e.getKey(), e.getValue())).forEach(Leeches::log);
-  }
-  
-  private int randomDelay() {
-    final int range = maxDelayMillis - minDelayMillis;
-    return (int) (Math.random() * range + minDelayMillis);
   }
   
   private void connect(XClient<UndertowEndpoint> client) throws URISyntaxException, Exception {
@@ -107,7 +96,7 @@ public final class Leeches extends Thread {
   }
   
   private void handleMessage(UndertowEndpoint endpoint) {
-    final int delayMillis = randomDelay();
+    final int delayMillis = randomDelay(minDelayMillis, maxDelayMillis);
     if (delayMillis != 0) {
       if (useThreadSleep) {
         try {
@@ -155,10 +144,6 @@ public final class Leeches extends Thread {
       lastReportTime = now;
       lastReceived = totalReceived;
     }
-  }
-  
-  private static void log(String format, Object ... args) {
-    System.out.format("[" + new Date() + "] " + format + "\n", args);
   }
   
   public static void main(String[] args) throws Exception {

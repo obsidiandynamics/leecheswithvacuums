@@ -97,6 +97,12 @@ task leeches(type: JavaExec) {
   main = 'au.com.williamhill.leecheswithvacuums.Leeches'
 }
 
+task pump(type: JavaExec) {
+  systemProperties = System.properties
+  classpath = sourceSets.main.runtimeClasspath
+  main = 'au.com.williamhill.leecheswithvacuums.Pump'
+}
+
 build {
   dependsOn fullJar
 }

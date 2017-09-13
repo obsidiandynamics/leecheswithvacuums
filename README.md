@@ -27,3 +27,17 @@ lwv.idleTimeout     : 600000
 lwv.reportInterval  : 5000
 lwv.url             : ws://localhost:8080
 ```
+
+# Pump
+Leeches also come with a simple WebSocket server for generating traffic called Pump. Pump simply waits for inbound connections and then starts
+
+The following is a complete list of supported properties and their default values. All times are in milliseconds.
+```
+lwv.delay.max       : 0
+lwv.delay.min       : 0
+lwv.idleTimeout     : 600000
+lwv.maxBacklog      : 100
+lwv.message         : hello
+lwv.pingInterval    : 60000
+lwv.reportInterval  : 5000
+```

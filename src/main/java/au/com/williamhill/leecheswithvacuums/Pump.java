@@ -1,16 +1,38 @@
 package au.com.williamhill.leecheswithvacuums;
 
+import static au.com.williamhill.leecheswithvacuums.LeechesCommon.*;
+import static com.obsidiandynamics.indigo.util.PropertyUtils.*;
+
 import java.nio.*;
 import java.util.*;
 
 import au.com.williamhill.flywheel.socketx.*;
 import au.com.williamhill.flywheel.socketx.undertow.*;
 
-public final class TestServer {
-  public static void main(String[] args) throws Exception {
+public final class Pump {
+  private static final Properties props = new Properties(System.getProperties());
+  private final int port = getOrSet(props, "lwv.port", Integer::parseInt, 8080);
+  private final String path = getOrSet(props, "lwv.path", String::valueOf, "/");
+  private final int minDelayMillis = getOrSet(props, "lwv.delay.min", Integer::parseInt, 0);
+  private final int maxDelayMillis = getOrSet(props, "lwv.delay.max", Integer::parseInt, 0);
+  private final int reportIntervalMillis = getOrSet(props, "lwv.reportInterval", Integer::parseInt, 5_000);
+  private final int maxBacklog = getOrSet(props, "lwv.maxBacklog", Integer::parseInt, 100);
+  private final int idleTimeoutMillis = getOrSet(props, "lwv.idleTimeout", Integer::parseInt, 600_000);
+  private final int pingIntervalMillis = getOrSet(props, "lwv.pingInterval", Integer::parseInt, 60_000);
+  private final String message = getOrSet(props, "lwv.message", String::valueOf, "hello");
+  
+  private Pump() throws Exception {
+    log("Pump: starting...");
+    printProps(props);
+    
     final XServerConfig config = new XServerConfig() {{
+      idleTimeoutMillis = Pump.this.idleTimeoutMillis;
+      pingIntervalMillis = Pump.this.pingIntervalMillis;
+      port = Pump.this.port;
+      path = Pump.this.path;
     }};
-    final XServer<UndertowEndpoint> server = UndertowServer.factory().create(config, new XEndpointListener<UndertowEndpoint>() {
+    
+    final XServer<? extends XEndpoint> server = UndertowServer.factory().create(config, new XEndpointListener<UndertowEndpoint>() {
       @Override
       public void onConnect(UndertowEndpoint endpoint) {
         log("Connected to " + endpoint);
@@ -25,10 +47,14 @@ public final class TestServer {
       }
 
       @Override
-      public void onPing(UndertowEndpoint endpoint, ByteBuffer data) {}
+      public void onPing(UndertowEndpoint endpoint, ByteBuffer data) {
+        log("Ping " + endpoint);
+      }
 
       @Override
-      public void onPong(UndertowEndpoint endpoint, ByteBuffer data) {}
+      public void onPong(UndertowEndpoint endpoint, ByteBuffer data) {
+        log("Pong " + endpoint);
+      }
 
       @Override
       public void onDisconnect(UndertowEndpoint endpoint, int statusCode, String reason) {
@@ -46,26 +72,29 @@ public final class TestServer {
       }
     });
 
-    final int maxBacklog = 100;
-    final int sleepMillis = 100;
-    final int reportIntervalMillis = 5000;
+    sendAndReport(server);
+  }
+  
+  private void sendAndReport(XServer<?> server) throws InterruptedException {
     final long startTime = System.currentTimeMillis();
     long lastReportTime = startTime;
     long lastSent = 0;
     long totalSent = 0;
     for (;;) {
       int sent = 0;
-      for (UndertowEndpoint endpoint : server.getEndpointManager().getEndpoints()) {
+      for (XEndpoint endpoint : server.getEndpointManager().getEndpoints()) {
         if (endpoint.getBacklog() > maxBacklog) continue;
         
-        endpoint.send("hello", null);
+        endpoint.send(message, null);
         sent++;
       }
       
       if (sent == 0) {
-        Thread.sleep(sleepMillis);
+        Thread.sleep(100);
       } else {
         totalSent += sent;
+        final int delayMillis = randomDelay(minDelayMillis, maxDelayMillis);
+        if (delayMillis != 0) Thread.sleep(delayMillis);
       }
       
       final long now = System.currentTimeMillis();
@@ -86,7 +115,7 @@ public final class TestServer {
     }
   }
   
-  private static void log(String format, Object ... args) {
-    System.out.format("[" + new Date() + "] " + format + "\n", args);
+  public static void main(String[] args) throws Exception {
+    new Pump();
   }
 }
