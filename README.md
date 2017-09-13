@@ -29,15 +29,28 @@ lwv.url             : ws://localhost:8080
 ```
 
 # Pump
-Leeches also come with a simple WebSocket server for generating traffic called Pump. Pump simply waits for inbound connections and then starts
+As an added bonus, Leeches also come with a simple WebSocket server for generating traffic called Pump. Pump simply waits for inbound connections and then starts pumping simple text messages to the receiving endpoint. It supports a similar set of parameters as Leeches - you can configure the throttle rate, timeouts, and so forth.
+```sh
+./gradlew pump -Dlwv.port=8080 -Dlwv.path=/
+```
 
 The following is a complete list of supported properties and their default values. All times are in milliseconds.
 ```
 lwv.delay.max       : 0
 lwv.delay.min       : 0
 lwv.idleTimeout     : 600000
-lwv.maxBacklog      : 100
+lwv.maxBacklog      : 10000
 lwv.message         : hello
+lwv.path            : /
 lwv.pingInterval    : 60000
+lwv.port            : 8080
 lwv.reportInterval  : 5000
+```
+
+# Running from Docker
+You can run the gradle build from a JDK-equipped Docker base image, such as `openjdk:8u131-jdk-alpine`. Assuming that leeches is cloned into `~/code/leecheswithvacuums`, run the following:
+```sh
+docker run -it -p 8080:8080 -v ~/code/leecheswithvacuums:/leeches openjdk:8u131-jdk-alpine
+cd leeches
+./gradlew pump -Dlwv.port=8080 -Dlwv.path=/ 
 ```
