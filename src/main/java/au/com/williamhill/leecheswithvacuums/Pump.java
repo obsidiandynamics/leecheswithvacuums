@@ -10,7 +10,7 @@ import au.com.williamhill.flywheel.socketx.*;
 import au.com.williamhill.flywheel.socketx.undertow.*;
 
 public final class Pump {
-  private static final Properties props = new Properties(System.getProperties());
+  private final Properties props = new Properties(System.getProperties());
   private final int port = getOrSet(props, "lwv.port", Integer::parseInt, 8080);
   private final String path = getOrSet(props, "lwv.path", String::valueOf, "/");
   private final int minDelayMillis = getOrSet(props, "lwv.delay.min", Integer::parseInt, 0);

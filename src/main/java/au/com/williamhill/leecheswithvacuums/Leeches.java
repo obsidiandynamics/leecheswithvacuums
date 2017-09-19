@@ -13,7 +13,7 @@ import au.com.williamhill.flywheel.socketx.undertow.*;
 import io.undertow.websockets.core.*;
 
 public final class Leeches extends Thread {
-  private static final Properties props = new Properties(System.getProperties());
+  private final Properties props = new Properties(System.getProperties());
   private final String url = getOrSet(props, "lwv.url", String::valueOf, "ws://localhost:8080");
   private final int connections = getOrSet(props, "lwv.connections", Integer::parseInt, 1);
   private final int minDelayMillis = getOrSet(props, "lwv.delay.min", Integer::parseInt, 0);
