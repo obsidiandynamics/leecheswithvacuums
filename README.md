@@ -54,3 +54,9 @@ docker run -it -p 8080:8080 -v ~/code/leecheswithvacuums:/leeches openjdk:8u131-
 cd leeches
 ./gradlew pump -Dlwv.port=8080 -Dlwv.path=/ 
 ```
+
+# YourKit
+YourKit is kindly supporting open source projects with its full-featured Java Profiler. YourKit, LLC is the creator of innovative and intelligent tools for profiling Java and .NET applications. Take a look at YourKit's leading software products: [YourKit Java Profiler](https://www.yourkit.com/java/profiler/) and [YourKit .NET Profiler](https://www.yourkit.com/.net/profiler).
+
+<img src="https://www.yourkit.com/images/yklogo.png"/>
+We cannot recommend YourKit enough. It's a superb profiling tool with great Eclipse integration. If you're serious about Java development, you need to be using YourKit.
